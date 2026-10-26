@@ -118,3 +118,56 @@ def make_gmail_thread_resource(thread_id: str, message_ids: List[str]) -> dict:
         "messages": messages,
         "snippet": f"Snippet for {message_ids[-1]}",
     }
+
+
+async def seed_analysis(
+    db: AsyncSession,
+    message: Message,
+    *,
+    category: str = "URGENT",
+    urgency_score: int = 5,
+    summary: str = "Critical urgent matter",
+    confidence: float = 0.95,
+    content_hash: str = "hash123",
+):
+    from app.models.analysis import EmailAnalysis
+    analysis = EmailAnalysis(
+        id=uuid.uuid4(),
+        message_id=message.id,
+        category=category,
+        urgency_score=urgency_score,
+        summary=summary,
+        confidence=confidence,
+        content_hash=content_hash,
+    )
+    db.add(analysis)
+    await db.commit()
+    await db.refresh(analysis)
+    return analysis
+
+
+async def seed_action_item(
+    db: AsyncSession,
+    analysis,
+    message: Message,
+    *,
+    description: str = "Review proposal",
+    deadline: Optional[datetime] = None,
+    assignee: Optional[str] = "Alice",
+    status: str = "pending",
+):
+    from app.models.analysis import ActionItem
+    item = ActionItem(
+        id=uuid.uuid4(),
+        analysis_id=analysis.id,
+        message_id=message.id,
+        description=description,
+        deadline=deadline,
+        assignee=assignee,
+        status=status,
+    )
+    db.add(item)
+    await db.commit()
+    await db.refresh(item)
+    return item
+

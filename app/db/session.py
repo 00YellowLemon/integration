@@ -63,7 +63,10 @@ async def get_db() -> AsyncGenerator[AsyncSession, None]:
 
 
 async def init_db(engine: Optional[AsyncEngine] = None) -> None:
-    """Initialize database tables idempotently."""
+    """Initialize database tables and views idempotently."""
     db_engine = engine or get_engine()
     async with db_engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+    from app.db.views import create_views
+    await create_views(db_engine)
+

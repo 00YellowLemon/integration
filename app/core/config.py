@@ -87,6 +87,27 @@ class Settings(BaseSettings):
         description="Bounded retry count passed to the chat model",
     )
 
+    # ------------------------------------------------------------------
+    # Phase 4: Resilience & Rate Limiting Guardrails
+    # ------------------------------------------------------------------
+    GMAIL_RATE_LIMIT_RETRIES: int = Field(
+        default=4,
+        description="Maximum retry attempts for Gmail API rate limits (429/503)",
+    )
+    GMAIL_RETRY_BACKOFF_MIN: float = Field(
+        default=1.0,
+        description="Minimum exponential backoff wait in seconds for Gmail API",
+    )
+    GMAIL_RETRY_BACKOFF_MAX: float = Field(
+        default=30.0,
+        description="Maximum exponential backoff wait in seconds for Gmail API",
+    )
+    GEMINI_RATE_LIMIT_RETRIES: int = Field(
+        default=3,
+        description="Maximum retry attempts for Gemini / Vertex AI quota errors",
+    )
+
+
 
     @field_validator("DATABASE_URL")
     @classmethod

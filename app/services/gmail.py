@@ -4,6 +4,9 @@ from typing import Any, Dict, List, Optional
 from google.oauth2.credentials import Credentials
 from googleapiclient.discovery import build
 
+from app.core.retry import with_retry
+
+
 FORBIDDEN_WRITE_SCOPES = {
     "https://mail.google.com/",
     "https://www.googleapis.com/auth/gmail.modify",
@@ -49,6 +52,7 @@ class GmailClient:
             "historyId": str(profile.get("historyId", "")),
         }
 
+    @with_retry(max_attempts=4, min_wait=1.0, max_wait=30.0)
     async def get_profile(self, user_id: str = "me") -> Dict[str, Any]:
         """
         Asynchronously fetch the Gmail user profile and mailbox statistics.
@@ -71,6 +75,7 @@ class GmailClient:
         )
         return req.execute()
 
+    @with_retry(max_attempts=4, min_wait=1.0, max_wait=30.0)
     async def list_threads(
         self,
         max_results: int = 50,
@@ -90,6 +95,7 @@ class GmailClient:
         service = self._get_service()
         return service.users().threads().get(userId=user_id, id=thread_id, format="full").execute()
 
+    @with_retry(max_attempts=4, min_wait=1.0, max_wait=30.0)
     async def get_thread(self, thread_id: str, user_id: str = "me") -> Dict[str, Any]:
         """Asynchronously fetch complete thread payload with full message details."""
         return await asyncio.to_thread(self._sync_get_thread, thread_id=thread_id, user_id=user_id)
@@ -99,6 +105,7 @@ class GmailClient:
         service = self._get_service()
         return service.users().messages().get(userId=user_id, id=message_id, format="full").execute()
 
+    @with_retry(max_attempts=4, min_wait=1.0, max_wait=30.0)
     async def get_message(self, message_id: str, user_id: str = "me") -> Dict[str, Any]:
         """Asynchronously fetch full message payload."""
         return await asyncio.to_thread(self._sync_get_message, message_id=message_id, user_id=user_id)
@@ -117,6 +124,7 @@ class GmailClient:
             pageToken=page_token,
         ).execute()
 
+    @with_retry(max_attempts=4, min_wait=1.0, max_wait=30.0)
     async def list_history(
         self,
         start_history_id: str,
@@ -144,6 +152,7 @@ class GmailClient:
             body["labelIds"] = label_ids
         return service.users().watch(userId=user_id, body=body).execute()
 
+    @with_retry(max_attempts=4, min_wait=1.0, max_wait=30.0)
     async def register_watch(
         self,
         topic_name: str,
@@ -163,6 +172,8 @@ class GmailClient:
         service = self._get_service()
         return service.users().stop(userId=user_id).execute()
 
+    @with_retry(max_attempts=4, min_wait=1.0, max_wait=30.0)
     async def stop_watch(self, user_id: str = "me") -> Dict[str, Any]:
         """Asynchronously stop mailbox push notifications."""
         return await asyncio.to_thread(self._sync_stop_watch, user_id=user_id)
+

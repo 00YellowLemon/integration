@@ -23,12 +23,25 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    column,
 )
+from sqlalchemy.ext.compiler import compiles
 from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.sql.elements import UnaryExpression
+from sqlalchemy.sql.operators import nulls_last_op
+
 
 from app.db.base import Base
 from app.models.account import GUID
 from sqlalchemy.types import TypeDecorator
+
+
+@compiles(UnaryExpression, "sqlite")
+def _compile_unary_sqlite(element, compiler, **kw):
+    """SQLite compatibility: strip NULLS LAST which SQLite does not support."""
+    if element.modifier is nulls_last_op:
+        return compiler.process(element.element, **kw)
+    return compiler.visit_unary(element, **kw)
 
 
 class UTCDateTime(TypeDecorator):
@@ -59,7 +72,9 @@ class EmailAnalysis(Base):
     __table_args__ = (
         CheckConstraint("urgency_score BETWEEN 1 AND 5", name="ck_email_analyses_urgency"),
         CheckConstraint("confidence >= 0 AND confidence <= 1", name="ck_email_analyses_confidence"),
+        Index("ix_email_analyses_urgency_created", column("urgency_score").desc(), column("created_at").desc()),
     )
+
 
     id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     message_id: Mapped[uuid.UUID] = mapped_column(
@@ -110,7 +125,9 @@ class ActionItem(Base):
     __tablename__ = "action_items"
     __table_args__ = (
         Index("ix_action_items_deadline_status", "deadline", "status"),
+        Index("ix_action_items_status_deadline", "status", column("deadline").asc().nulls_last()),
     )
+
 
     id: Mapped[uuid.UUID] = mapped_column(GUID, primary_key=True, default=uuid.uuid4)
     analysis_id: Mapped[uuid.UUID] = mapped_column(

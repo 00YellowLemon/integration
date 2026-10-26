@@ -9,7 +9,9 @@ from app.api.auth import router as auth_router
 from app.api.gmail import router as gmail_router
 from app.api.webhook import router as webhook_router
 from app.api.triage import router as triage_router
+from app.api.digest import router as digest_router
 from app.core.config import get_settings
+
 from app.db.session import get_engine, init_db
 from app.triage.checkpointer import close_checkpointer, init_checkpointer
 
@@ -22,10 +24,13 @@ async def lifespan(app: FastAPI):
     """Lifespan context initializing database tables on startup."""
     settings = get_settings()
     logging.basicConfig(level=getattr(logging, settings.LOG_LEVEL.upper(), logging.INFO))
-    logger.info("Starting Gmail AI Assistant application...")
+    # Enforce Constitutional Principle 1: Least Privilege & Read-Only Safety Guardrail
+    from app.core.guardrails import verify_read_only_safety
+    verify_read_only_safety()
 
     try:
         await init_db()
+
         logger.info("Database initialized successfully.")
     except Exception as e:
         logger.warning("Database initialization skipped or encountered error: %s", e)
@@ -64,6 +69,8 @@ app.include_router(auth_router)
 app.include_router(gmail_router)
 app.include_router(webhook_router)
 app.include_router(triage_router)
+app.include_router(digest_router)
+
 
 
 

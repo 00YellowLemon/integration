@@ -1,10 +1,15 @@
-"""Central API router aggregating auth, gmail, and webhook sub-routers."""
+"""Central API router aggregating all application sub-routers."""
 from fastapi import APIRouter
 from app.api.auth import router as auth_router
 from app.api.gmail import router as gmail_router
 from app.api.webhook import router as webhook_router
+from app.api.triage import router as triage_router
+from app.api.digest import router as digest_router
 
 api_router = APIRouter()
 api_router.include_router(auth_router)
 api_router.include_router(gmail_router)
 api_router.include_router(webhook_router)
+api_router.include_router(triage_router)
+api_router.include_router(digest_router)
+

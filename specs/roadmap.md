@@ -120,27 +120,27 @@ This roadmap breaks down the construction of the **Gmail AI Email Triage Agent**
 ## Phase 4: Frontend Data Views, Digest APIs & Semantic Search
 
 ### Phase 4.1: Vector Embeddings & Semantic Search
-- [ ] Add `embedding` column (`VECTOR(768)`) to `messages` or `email_analyses` using `pgvector`.
-- [ ] Integrate Gemini embedding model to generate embeddings for processed email contents and summaries.
-- [ ] Implement `search_emails(query: str, limit: int)` performing cosine similarity search.
-- **Verification**: Search for a concept (e.g. "quarterly tax invoice") and verify retrieval of relevant email without exact keyword match.
+- [ ] *(Deferred per user directive)* Add `embedding` column (`VECTOR(768)`) to `messages` or `email_analyses` using `pgvector`.
+- [ ] *(Deferred per user directive)* Integrate Gemini embedding model to generate embeddings for processed email contents and summaries.
+- [ ] *(Deferred per user directive)* Implement `search_emails(query: str, limit: int)` performing cosine similarity search.
+- **Verification**: Deferred; pure triage intelligence prioritized.
 
 ### Phase 4.2: Frontend-Facing Postgres Queries & Triage APIs
-- [ ] Optimize database indexes and views for direct frontend PostgreSQL querying (urgent triage feed, action items list, thread summaries).
-- [ ] Build FastAPI REST endpoints in `app/api/digest.py`:
+- [x] Optimize database indexes and views for direct frontend PostgreSQL querying (urgent triage feed, action items list, thread summaries).
+- [x] Build FastAPI REST endpoints in `app/api/digest.py`:
   - `GET /api/v1/digest/today`: Returns summary of today's incoming emails grouped by urgency and category.
   - `GET /api/v1/action-items`: Returns pending action items with upcoming deadlines.
   - `GET /api/v1/threads/{thread_id}/triage`: Returns the executive triage briefing for a thread.
 - **Verification**: Direct query via SQL client and FastAPI endpoint returns matching formatted triage feeds.
 
 ### Phase 4.3: Resilience, Rate Limiting & Safety Guardrails
-- [ ] Implement exponential backoff for Gmail API quota handling (Google 429/503 responses).
-- [ ] Implement fallback behavior when Gemini API is unavailable or rate-limited.
-- [ ] Add strict code-level guardrail verifying zero write/send capability in the service layer (`read-only assertion`).
+- [x] Implement exponential backoff for Gmail API quota handling (Google 429/503 responses).
+- [x] Implement fallback behavior when Gemini API is unavailable or rate-limited.
+- [x] Add strict code-level guardrail verifying zero write/send capability in the service layer (`read-only assertion`).
 - **Verification**: Simulate API failure and verify graceful retries without crashing or corrupting PostgreSQL state.
 
 ### Phase 4.4: Milestone 4 Verification Test
-- **Milestone 4 Test**: End-to-end test querying daily digests, verifying action items, and performing semantic search across stored inbox intelligence.
+- [x] **Milestone 4 Test**: End-to-end test querying daily digests, verifying action items, and performing verified triage across stored inbox intelligence.
 
 ---
 

@@ -17,7 +17,9 @@ from langchain_core.tools import BaseTool
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
+from app.core.retry import with_retry
 from app.triage.checkpointer import get_checkpointer, memory_thread_id
+
 from app.triage.prompts import TRIAGE_SYSTEM_PROMPT
 from app.triage.tools import TriageRunState, build_triage_tools
 
@@ -96,7 +98,9 @@ def build_agent(
     )
 
 
+@with_retry(max_attempts=3, min_wait=1.0, max_wait=30.0)
 async def invoke_triage(
+
     agent,
     message_id: str,
     thread_id: str,
