@@ -1,0 +1,61 @@
+# .gcloudignore — controls which files are excluded from `gcloud run deploy --source .`
+# Follows the same syntax as .gitignore.
+# See: https://cloud.google.com/sdk/gcloud/reference/topic/gcloudignore
+
+# Include .gitignore rules automatically
+#!include:.gitignore
+
+# Python virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python bytecode and caches
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.egg-info/
+dist/
+build/
+
+# Sensitive local config — NEVER upload to Cloud Run source bundle
+.env
+.env.*
+!.env.example
+credentials.json
+token.json
+client_secrets*.json
+service_account*.json
+*.pem
+*.p12
+
+# Test infrastructure (not needed in production container)
+tests/
+pytest.ini
+.coverage
+htmlcov/
+
+# Development scripts (not needed in production container)
+scripts/
+
+# IDE and editor artifacts
+.git/
+.gitignore
+.opencode/
+.gemini/
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# Documentation and specs (reduces upload footprint)
+specs/
+*.md
+
+# Cloud SDK artifacts
+.gcloudignore

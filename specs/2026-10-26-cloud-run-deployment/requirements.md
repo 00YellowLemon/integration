@@ -164,6 +164,5 @@ As dictated by [specs/mission.md §1 & §4](file:///c:/Users/lemon/integration/s
    - `projects/project-cd2fe81b-1cc9-4618-a35/secrets/APP_SECRET_KEY`
    - `projects/project-cd2fe81b-1cc9-4618-a35/secrets/DATABASE_URL`
 3. **OIDC Authentication Pipeline**:
-   - Google Pub/Sub sends `Authorization: Bearer <ID_TOKEN>`.
-   - `app/api/webhook.py` extracts the token, verifies Google signature using `google.oauth2.id_token.verify_oauth2_token(token, requests.Request(), audience=expected_audience)`.
-   - Email in token claims must match `gmail-triage-runner@<PROJECT_ID>.iam.gserviceaccount.com` or Google Cloud Pub/Sub service identity.
+   - Explicitly deferred per user decision ("No need for now").
+   - Incoming Pub/Sub push payloads are authenticated by payload validation and matching registered accounts in PostgreSQL (D6).

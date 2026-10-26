@@ -1,5 +1,6 @@
 """Application configuration using Pydantic Settings."""
 import logging
+import os
 from functools import lru_cache
 from typing import Optional
 from pydantic import Field, SecretStr, field_validator
@@ -34,9 +35,36 @@ class Settings(BaseSettings):
         description="Async PostgreSQL connection string (e.g. postgresql+asyncpg://...)",
     )
 
-    APP_HOST: str = Field(default="127.0.0.1", description="FastAPI server host")
-    APP_PORT: int = Field(default=8000, description="FastAPI server port")
+    # ------------------------------------------------------------------
+    # Phase 5: Cloud Run Runtime Contract
+    # APP_HOST defaults to 0.0.0.0 so the process binds on all interfaces
+    # (required by Cloud Run and Docker-equivalent runtimes).
+    # PORT is injected by Cloud Run at container startup; APP_PORT is the
+    # local development fallback (8000).  Use `effective_port` to resolve.
+    # ------------------------------------------------------------------
+    APP_HOST: str = Field(
+        default="0.0.0.0",
+        description="FastAPI server bind host (0.0.0.0 for Cloud Run; 127.0.0.1 for strict-local)",
+    )
+    APP_PORT: int = Field(default=8000, description="FastAPI server port (local fallback)")
     LOG_LEVEL: str = Field(default="INFO", description="Application log level")
+
+    @property
+    def effective_port(self) -> int:
+        """
+        Resolve the runtime port.
+
+        Priority:
+        1. ``PORT`` environment variable (injected by Cloud Run at startup).
+        2. ``APP_PORT`` setting (default 8000, for local development).
+        """
+        port_env = os.environ.get("PORT")
+        if port_env:
+            try:
+                return int(port_env)
+            except ValueError:
+                logger.warning("Invalid PORT env var value '%s'; falling back to APP_PORT.", port_env)
+        return self.APP_PORT
 
     GCP_PROJECT_ID: Optional[str] = Field(
         default=None,

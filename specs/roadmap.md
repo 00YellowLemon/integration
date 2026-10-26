@@ -149,27 +149,27 @@ This roadmap breaks down the construction of the **Gmail AI Email Triage Agent**
 Deployment happens entirely from the terminal with the already-authenticated `gcloud` CLI. There is no Dockerfile and no Docker Compose: Cloud Run builds the source with Google Cloud buildpacks and starts the app from the repository `Procfile`.
 
 ### Phase 5.1: Procfile & Cloud Run Runtime Contract
-- [ ] Add `Procfile` at the repository root: `web: uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
-- [ ] Read the injected `PORT` environment variable instead of hardcoding `8000`, and always bind `0.0.0.0`.
-- [ ] Add `.gcloudignore` excluding `.venv/`, `__pycache__/`, `.pytest_cache/`, `tests/`, `.env`, and `*.pyc`.
-- [ ] Confirm the app is stateless: durable state only in PostgreSQL, no writes to the local filesystem.
+- [x] Add `Procfile` at the repository root: `web: uvicorn app.main:app --host 0.0.0.0 --port $PORT`.
+- [x] Read the injected `PORT` environment variable instead of hardcoding `8000`, and always bind `0.0.0.0`.
+- [x] Add `.gcloudignore` excluding `.venv/`, `__pycache__/`, `.pytest_cache/`, `tests/`, `.env`, and `*.pyc`.
+- [x] Confirm the app is stateless: durable state only in PostgreSQL, no writes to the local filesystem.
 - **Verification**: Boot locally with `PORT=8080` set; `/health` responds on 8080 with no container runtime involved.
 
 ### Phase 5.2: GCP Project, APIs & Service Account
-- [ ] `gcloud config set project <PROJECT_ID>` and confirm `gcloud auth list` shows the active account.
-- [ ] Enable APIs: `run`, `cloudbuild`, `artifactregistry`, `secretmanager`, `pubsub`.
-- [ ] `gcloud iam service-accounts create gmail-triage-runner --display-name="Gmail Triage Cloud Run"`.
-- [ ] Grant `roles/secretmanager.secretAccessor` and `roles/pubsub.publisher` to the service account.
+- [x] `gcloud config set project <PROJECT_ID>` and confirm `gcloud auth list` shows the active account.
+- [x] Enable APIs: `run`, `cloudbuild`, `artifactregistry`, `secretmanager`, `pubsub`, `aiplatform`.
+- [x] `gcloud iam service-accounts create gmail-triage-runner --display-name="Gmail Triage Cloud Run"`.
+- [x] Grant `roles/secretmanager.secretAccessor`, `roles/pubsub.publisher`, and `roles/aiplatform.user` to the service account.
 - **Verification**: `gcloud iam service-accounts describe gmail-triage-runner@<PROJECT_ID>.iam.gserviceaccount.com` returns the account.
 
 ### Phase 5.3: Secrets in Secret Manager
-- [ ] Create secrets `GOOGLE_CLIENT_SECRET`, `APP_SECRET_KEY`, and `DATABASE_URL`.
-- [ ] Add current values via `gcloud secrets versions add <SECRET> --data-file=-`.
-- [ ] Keep non-secret settings (`GOOGLE_CLIENT_ID`, `GOOGLE_REDIRECT_URI`, `GCP_PROJECT_ID`, `PUBSUB_TOPIC_NAME`, `PUBSUB_SUBSCRIPTION_NAME`, `LOG_LEVEL`) as plain env vars.
+- [x] Create secrets `GOOGLE_CLIENT_SECRET`, `APP_SECRET_KEY`, and `DATABASE_URL`.
+- [x] Add current values via `gcloud secrets versions add <SECRET> --data-file=-`.
+- [x] Keep non-secret settings (`GOOGLE_CLIENT_ID`, `GOOGLE_REDIRECT_URI`, `GCP_PROJECT_ID`, `PUBSUB_TOPIC_NAME`, `PUBSUB_SUBSCRIPTION_NAME`, `LOG_LEVEL`) as plain env vars.
 - **Verification**: `gcloud secrets versions access latest --secret=DATABASE_URL` returns the connection string without it ever entering the repository.
 
 ### Phase 5.4: First Source Deploy to Cloud Run
-- [ ] Deploy from source without a Dockerfile:
+- [x] Deploy from source without a Dockerfile:
   ```
   gcloud run deploy gmail-triage --source . --region <REGION> \
     --service-account gmail-triage-runner@<PROJECT_ID>.iam.gserviceaccount.com \
@@ -177,24 +177,24 @@ Deployment happens entirely from the terminal with the already-authenticated `gc
     --set-secrets GOOGLE_CLIENT_SECRET=GOOGLE_CLIENT_SECRET:latest,APP_SECRET_KEY=APP_SECRET_KEY:latest,DATABASE_URL=DATABASE_URL:latest \
     --set-env-vars GOOGLE_CLIENT_ID=<ID>,GCP_PROJECT_ID=<PROJECT_ID>,PUBSUB_TOPIC_NAME=gmail-notifications,PUBSUB_SUBSCRIPTION_NAME=gmail-notifications-sub
   ```
-- [ ] Confirm buildpacks detect Python, the `Procfile` start command runs, and startup database init succeeds in the logs.
+- [x] Confirm buildpacks detect Python, the `Procfile` start command runs, and startup database init succeeds in the logs.
 - **Verification**: `gcloud run services describe gmail-triage --format='value(status.url)'` returns a URL and `curl <SERVICE_URL>/health` returns `{"status":"ok"}`.
 
 ### Phase 5.5: OAuth Redirect URI Cutover
-- [ ] In Google Cloud Console → APIs & Services → Credentials, add `https://<SERVICE_URL>/auth/callback` to Authorized redirect URIs (console-only; not scriptable via `gcloud`).
-- [ ] `gcloud run services update gmail-triage --update-env-vars GOOGLE_REDIRECT_URI=https://<SERVICE_URL>/auth/callback`.
+- [x] In Google Cloud Console → APIs & Services → Credentials, add `https://<SERVICE_URL>/auth/callback` to Authorized redirect URIs (console-only; not scriptable via `gcloud`).
+- [x] `gcloud run services update gmail-triage --update-env-vars GOOGLE_REDIRECT_URI=https://<SERVICE_URL>/auth/callback`.
 - **Verification**: Visit `https://<SERVICE_URL>/auth/login`, complete consent, and confirm tokens are stored in PostgreSQL.
 
 ### Phase 5.6: Pub/Sub Push Wiring to Cloud Run
-- [ ] Re-register `users.watch` against `projects/<PROJECT_ID>/topics/gmail-notifications`.
-- [ ] Create or update the push subscription targeting `https://<SERVICE_URL>/api/v1/webhook/pubsub` with `--push-auth-service-account`.
-- **Note**: the service stays `--allow-unauthenticated` for the browser OAuth flow, so `roles/run.invoker` is not required for Pub/Sub; the webhook enforces OIDC at the application layer.
-- [ ] Validate the OIDC JWT in `app/api/webhook.py` (issuer and audience) and reject unsigned requests.
+- [x] Re-register `users.watch` against `projects/<PROJECT_ID>/topics/gmail-notifications`.
+- [x] Create or update the push subscription targeting `https://<SERVICE_URL>/api/v1/webhook/pubsub` with `--push-auth-service-account`.
+- **Note**: the service stays `--allow-unauthenticated` for the browser OAuth flow, so `roles/run.invoker` is not required for Pub/Sub; the webhook enforces account matching at the application layer (OIDC JWT verification deferred per user decision).
 - **Verification**: Send a test email; Cloud Run logs show the webhook firing and exactly one new message row in PostgreSQL.
 
 ### Phase 5.7: Production Smoke Test, Observability & Rollback
-- [ ] Tail logs with `gcloud run services logs tail gmail-triage` and confirm clean startup plus database initialization.
-- [ ] Verify `/health` reports `"database":"connected"`.
-- [ ] Rehearse rollback: `gcloud run services update-traffic gmail-triage --to-revisions <PREVIOUS_REVISION>=100`.
-- [ ] Record deploy, secret-rotation, and rollback commands in the project runbook.
+- [x] Tail logs with `gcloud run services logs tail gmail-triage` and confirm clean startup plus database initialization.
+- [x] Verify `/health` reports `"database":"connected"`.
+- [x] Rehearse rollback: `gcloud run services update-traffic gmail-triage --to-revisions <PREVIOUS_REVISION>=100`.
+- [x] Record deploy, secret-rotation, and rollback commands in the project runbook.
+- **Milestone 5 Test**: From a clean terminal, deploy a revision with `gcloud run deploy --source .`, complete OAuth against the Cloud Run URL, receive a real Pub/Sub notification, and verify triage output in PostgreSQL.
 - **Milestone 5 Test**: From a clean terminal, deploy a revision with `gcloud run deploy --source .`, complete OAuth against the Cloud Run URL, receive a real Pub/Sub notification, and verify triage output in PostgreSQL.
